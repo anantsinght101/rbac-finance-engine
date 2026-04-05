@@ -2,6 +2,7 @@ package com.zorvyn.assignment.controller;
 
 import java.util.List;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,6 +16,7 @@ import com.zorvyn.assignment.dto.SummaryResponseDTO;
 import com.zorvyn.assignment.entity.TransactionRecord;
 import com.zorvyn.assignment.service.TransactionRecordService;
 
+@PreAuthorize("hasRole('ADMIN')")
 @RestController
 @RequestMapping("/api/transactions")
 public class TransactionRecordController {
@@ -30,11 +32,13 @@ public class TransactionRecordController {
         return transactionRecordService.createRecord(record);
     }
 
+    @PreAuthorize("hasRole('ADMIN') or hasRole('VIEWER')")
     @GetMapping
     public List<TransactionRecord> getAll() {
         return transactionRecordService.getAllRecords();
     }
 
+    @PreAuthorize("hasRole('ADMIN') or hasRole('VIEWER')")
     @GetMapping("/{id}")
     public TransactionRecord getById(@PathVariable Long id) {
         return transactionRecordService.getAllRecords().stream()

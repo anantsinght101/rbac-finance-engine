@@ -1,5 +1,7 @@
 package com.zorvyn.assignment.dto;
 
+import java.util.Map;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,11 +15,13 @@ public class SummaryResponseDTO {
     private double totalIncome;
     private double totalExpense;
     private double netBalance;
-    private long recordCount;      // total records
-    private long incomeCount;      // optional but good
-    private long expenseCount;     // optional but good
+    private long recordCount;    
+    private long incomeCount;    
+    private long expenseCount;     
     private double averageIncome;
     private double averageExpense;
+    Map<String, Double> categoryTotals;
+    
 }
 
 

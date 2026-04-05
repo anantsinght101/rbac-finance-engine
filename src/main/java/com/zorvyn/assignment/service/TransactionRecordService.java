@@ -2,7 +2,10 @@ package com.zorvyn.assignment.service;
 import com.zorvyn.assignment.dto.SummaryResponseDTO;
 import com.zorvyn.assignment.entity.TransactionRecord;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 import org.springframework.stereotype.Service;
 
 import com.zorvyn.assignment.repository.TransactionRecordRepository;
@@ -66,6 +69,17 @@ public class TransactionRecordService {
 
 
         //summary methods 
+
+        public Map<String, Double> getCategoryTotals(LocalDate startDate, LocalDate endDate) {
+    Map<String, Double> categoryTotals = new HashMap<>();
+
+    for (TransactionRecord.Category category : TransactionRecord.Category.values()) {
+        double total = totalByCategory(category, startDate, endDate);
+        categoryTotals.put(category.name(), total);
+    }
+
+    return categoryTotals;
+}
         
         public double totalIncome(LocalDate startDate, LocalDate endDate) {
     return transactionRecordRepository.findAll().stream()
@@ -158,11 +172,12 @@ public SummaryResponseDTO getSummary(LocalDate startDate, LocalDate endDate) {
     double net = income - expense;
     double avgIncome = averageIncome(startDate, endDate);
     double avgExpense = averageSpend(startDate, endDate);
+    Map<String, Double> categoryTotals = getCategoryTotals(startDate, endDate); 
 
     return new SummaryResponseDTO(
         income, expense, net, totalCount,
         incomeCount, expenseCount,
-        avgIncome, avgExpense
+        avgIncome, avgExpense, categoryTotals
     );
 }
 }

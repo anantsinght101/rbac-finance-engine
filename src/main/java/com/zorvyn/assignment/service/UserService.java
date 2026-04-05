@@ -82,20 +82,34 @@ public class UserService {
 
     user.setRole(role);
     user.setPassword(passwordEncoder.encode(user.getPassword()));
+    user.setActive(true);
     return userRepository.save(user);
 }
     
 
 
-   public String login(String email, String password) {
+  public String login(String email, String password) {
     User user = userRepository.findByEmail(email)
             .orElseThrow(() -> new RuntimeException("User not found"));
+
+    if (!user.isActive()) {
+        throw new RuntimeException("User account is inactive");
+    }
 
     if (!passwordEncoder.matches(password, user.getPassword())) {
         throw new RuntimeException("Invalid credentials");
     }
 
     return jwtUtil.generateToken(user);
+
+}
+
+public void setUserActiveStatus(Long userId, boolean isActive) {
+    User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+    user.setActive(isActive);
+    userRepository.save(user);
 }
 
 }

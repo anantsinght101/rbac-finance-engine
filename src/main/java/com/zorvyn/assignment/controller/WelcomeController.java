@@ -2,12 +2,14 @@ package com.zorvyn.assignment.controller;
 
 import java.io.IOException;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.servlet.http.HttpServletResponse;
 
+@PreAuthorize("permitAll()")
 @RestController
 public class WelcomeController {
 
