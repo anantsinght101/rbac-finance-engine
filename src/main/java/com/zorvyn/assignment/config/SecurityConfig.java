@@ -16,7 +16,7 @@ import com.zorvyn.assignment.security.JwtFilter;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    private JwtFilter jwtFilter;
+    private final JwtFilter jwtFilter;
 
     public SecurityConfig(JwtFilter jwtFilter) {
         this.jwtFilter = jwtFilter;
@@ -25,12 +25,24 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/users/signup", "/users/login", "/signup.html", "/login.html", "/","/.html/","/**/*.html").permitAll()
-                .anyRequest().authenticated()
-            )
-            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/auth/signup", "/auth/login",
+                                "/signup.html", "/login.html", "/",
+                                "/dashboard.html", "/css/**", "/js/**",
+                                "/favicon.ico" ,"/style.css", "/script.js")
+                        .permitAll()
+                        .requestMatchers("/users/**").hasRole("ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/transactions/summary").hasAnyRole("ADMIN", "ANALYST")
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/transactions/deleted").hasRole("ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/transactions/count").hasAnyRole("ADMIN", "ANALYST", "VIEWER")
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/transactions/recent").hasAnyRole("ADMIN", "ANALYST", "VIEWER")
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/transactions/**").hasAnyRole("ADMIN", "ANALYST", "VIEWER")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/transactions").hasRole("ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/transactions/**").hasRole("ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/transactions/**").hasRole("ADMIN")
+                        .anyRequest().authenticated())
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

@@ -1,115 +1,150 @@
 package com.zorvyn.assignment.service;
 
+import com.zorvyn.assignment.dto.CreateUserRequestDTO;
+import com.zorvyn.assignment.dto.CreateUserResponseDTO;
 import com.zorvyn.assignment.entity.Role;
 import com.zorvyn.assignment.repository.RoleRepository;
-import org.springframework.stereotype.Service; 
+import org.springframework.stereotype.Service;
 import com.zorvyn.assignment.entity.User;
+import com.zorvyn.assignment.exception.AccountInactiveException;
+import com.zorvyn.assignment.exception.DuplicateResourceException;
+import com.zorvyn.assignment.exception.InvalidCredentialsException;
+import com.zorvyn.assignment.exception.ResourceNotFoundException;
 import com.zorvyn.assignment.repository.UserRepository;
+
+import java.util.List;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.zorvyn.assignment.security.JwtUtil;
 
 @Service
 public class UserService {
 
-    private UserRepository userRepository;
-    private JwtUtil jwtUtil;
-    private RoleRepository roleRepository;
-    private PasswordEncoder passwordEncoder;
+    private final UserRepository userRepository;
+    private final JwtUtil jwtUtil;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository, JwtUtil jwtUtil, RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, JwtUtil jwtUtil, RoleRepository roleRepository,
+            PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
+   public CreateUserResponseDTO createUser(CreateUserRequestDTO request) {
 
+    if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+        throw new DuplicateResourceException("Email already exists");
+    }
 
+    Role role = roleRepository.findByName(request.getRole())
+            .orElseThrow(() -> new ResourceNotFoundException("Role not found"));
 
-    public User createUser(User user) {
-        return userRepository.save(user);
-        
-    }   
+    User user = new User();
+    user.setName(request.getName());
+    user.setEmail(request.getEmail());
+    user.setRole(role);
+
+    String plainPassword = (request.getPassword() == null || request.getPassword().isEmpty())
+            ? "defaultPassword1"
+            : request.getPassword();
+
+    user.setPassword(passwordEncoder.encode(plainPassword));
+    user.setActive(true);
+
+    User savedUser = userRepository.save(user);
+
+    CreateUserResponseDTO response = new CreateUserResponseDTO();
+    response.setName(savedUser.getName());
+    response.setEmail(savedUser.getEmail());
+    response.setRole(savedUser.getRole().getName());
+    response.setTemporaryPassword(plainPassword);
+
+    return response;
+}
 
     public User getUserById(Long id) {
-        return userRepository.findById(id).orElse(null);
+        return userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "User not found with id: " + id));
     }
 
     public User getUserByEmail(String email) {
         return userRepository.findByEmail(email).orElse(null);
     }
 
-    public Iterable<User> getAllUsers() {
+    public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 
     public User updateUser(Long id, User updatedUser) {
-        User existingUser = userRepository.findById(id).orElse(null);
-        if (existingUser != null) {
-            existingUser.setName(updatedUser.getName());
-            existingUser.setEmail(updatedUser.getEmail());
-            existingUser.setPassword(updatedUser.getPassword());
-            existingUser.setRole(updatedUser.getRole());
-            return userRepository.save(existingUser);
+        User existing = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "User not found with id: " + id));
+
+        existing.setName(updatedUser.getName());
+        existing.setEmail(updatedUser.getEmail());
+        
+        if (updatedUser.getPassword() != null && !updatedUser.getPassword().isEmpty() && !updatedUser.getPassword().equals("defaultPassword1")) {
+            existing.setPassword(passwordEncoder.encode(updatedUser.getPassword()));
         }
-        return null;
+        
+        if (updatedUser.getRole() != null && updatedUser.getRole().getName() != null) {
+            Role role = roleRepository.findByName(updatedUser.getRole().getName())
+                    .orElseThrow(() -> new ResourceNotFoundException("Role not found"));
+            existing.setRole(role);
+        }
+        existing.setActive(updatedUser.isActive());
+        
+        return userRepository.save(existing);
     }
 
-     public boolean deleteUser(Long id) {
+    public void deleteUser(Long id) {
         if (userRepository.existsById(id)) {
             userRepository.deleteById(id);
-            return true;
         }
-        return false;
-    }
-
     
-
-
-
-
-    
-
-
-        public User signup(User user) {
-    if (userRepository.findByEmail(user.getEmail()).isPresent()) {
-        throw new RuntimeException("Email already exists");
     }
 
-    String roleName = user.getRole().getName();
-    Role role = roleRepository.findByName(roleName)
-            .orElseThrow(() -> new RuntimeException("Role not found"));
+    public User signup(User user) {
+        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
+            throw new DuplicateResourceException("Email already exists");
+        }
 
-    user.setRole(role);
-    user.setPassword(passwordEncoder.encode(user.getPassword()));
-    user.setActive(true);
-    return userRepository.save(user);
-}
-    
+        String roleName = user.getRole().getName();
+        Role role = roleRepository.findByName(roleName)
+                .orElseThrow(() -> new ResourceNotFoundException("Role not found"));
 
-
-  public String login(String email, String password) {
-    User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-
-    if (!user.isActive()) {
-        throw new RuntimeException("User account is inactive");
+        user.setRole(role);
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setActive(true);
+        return userRepository.save(user);
     }
 
-    if (!passwordEncoder.matches(password, user.getPassword())) {
-        throw new RuntimeException("Invalid credentials");
+    public String login(String email, String password) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (!user.isActive()) {
+            throw new AccountInactiveException("User account is inactive");
+        }
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new InvalidCredentialsException("Invalid credentials");
+        }
+
+        return jwtUtil.generateToken(user);
+
     }
 
-    return jwtUtil.generateToken(user);
+    public void setUserActiveStatus(Long userId, boolean isActive) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-}
-
-public void setUserActiveStatus(Long userId, boolean isActive) {
-    User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-
-    user.setActive(isActive);
-    userRepository.save(user);
-}
+        user.setActive(isActive);
+        userRepository.save(user);
+    }
 
 }

@@ -3,6 +3,7 @@ package com.zorvyn.assignment.security;
 import java.security.Key;
 import java.util.Date;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.zorvyn.assignment.entity.User;
@@ -10,12 +11,20 @@ import com.zorvyn.assignment.entity.User;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 
 @Component
 public class JwtUtil {
 
-    private final String SECRET = "mysecretkeymysecretkeymysecretkey";
-    private final Key key = Keys.hmacShaKeyFor(SECRET.getBytes());
+@Value("${jwt.secret}")
+private String secret;
+
+private Key key;
+
+@PostConstruct
+public void init() {
+    this.key = Keys.hmacShaKeyFor(secret.getBytes());
+}
 
 
         public String generateToken(User user) {

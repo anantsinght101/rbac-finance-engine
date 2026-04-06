@@ -20,7 +20,7 @@ public class StartupInitializer implements org.springframework.boot.CommandLineR
         if (roleRepository.findByName("ADMIN").isEmpty()) {
             Role adminRole = new Role();
             adminRole.setName("ADMIN");
-            adminRole.setDescription("Administrator role with full permissions.");
+            adminRole.setDescription("Administrator     role with full permissions.");
             roleRepository.save(adminRole);
         }
 
@@ -31,12 +31,12 @@ public class StartupInitializer implements org.springframework.boot.CommandLineR
             roleRepository.save(viewerRole);
         }
 
-            if (roleRepository.findByName("ANALYST").isEmpty()) {
-                Role analystRole = new Role();
-                analystRole.setName("ANALYST");
-                analystRole.setDescription("Analyst role with permissions to analyze data.");
-                roleRepository.save(analystRole);
-            }
+        if (roleRepository.findByName("ANALYST").isEmpty()) {
+            Role analystRole = new Role();
+            analystRole.setName("ANALYST");
+            analystRole.setDescription("Analyst role with permissions to analyze data.");
+            roleRepository.save(analystRole);
+        }
     }
-    
+
 }

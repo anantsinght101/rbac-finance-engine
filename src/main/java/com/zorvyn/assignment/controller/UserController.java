@@ -1,97 +1,61 @@
 package com.zorvyn.assignment.controller;
 
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import java.util.List;
 
-import com.zorvyn.assignment.dto.LoginRequestDTO;
-import com.zorvyn.assignment.dto.LoginResponseDTO;
-import com.zorvyn.assignment.dto.SignUpRequestDTO;
-import com.zorvyn.assignment.dto.SignUpResponseDTO;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import com.zorvyn.assignment.dto.CreateUserRequestDTO;
+import com.zorvyn.assignment.dto.CreateUserResponseDTO;
 import com.zorvyn.assignment.entity.User;
 import com.zorvyn.assignment.service.UserService;
-import com.zorvyn.assignment.entity.Role;
 
 @PreAuthorize("hasRole('ADMIN')")
 @RestController
+@RequestMapping("/users")
 public class UserController {
 
-    private UserService userService;
+    private final UserService userService;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService ) {
         this.userService = userService;
     }
 
-    @PostMapping("/users")
-    public User create(@RequestBody User user) {
-        return userService.createUser(user);
-
+    @GetMapping("/{id}")
+    public ResponseEntity<User> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.getUserById(id));
     }
 
-    @PostMapping("/users/update")
-    public User update(@RequestBody User user) {
-        return userService.updateUser(user.getId(), user);
-
+    @GetMapping
+    public ResponseEntity<List<User>> getAll() {
+        return ResponseEntity.ok(userService.getAllUsers());
     }
 
-    @PostMapping("/users/delete")
-    public boolean delete(@RequestBody User user) {
-        return userService.deleteUser(user.getId());
+    
+    @PostMapping
+public ResponseEntity<CreateUserResponseDTO> create(@RequestBody CreateUserRequestDTO request) {
+    CreateUserResponseDTO response = userService.createUser(request);
+    return ResponseEntity.status(201).body(response);
+}
 
+    @PutMapping("/{id}")
+    public ResponseEntity<User> update(@PathVariable Long id, @RequestBody User user) {
+        return ResponseEntity.ok(userService.updateUser(id, user));
     }
 
-    @PostMapping("/users/get")
-    public User getById(@RequestBody User user) {
-        return userService.getUserById(user.getId());
-
+    
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        userService.deleteUser(id);
+        return ResponseEntity.noContent().build(); // 204 No Content
     }
 
-    @PostMapping("/users/getAll")
-    public Iterable<User> getAll() {
-        return userService.getAllUsers();
-
-    }
-
-    @PostMapping("/users/signup")
-    public SignUpResponseDTO signup(@RequestBody SignUpRequestDTO signUpRequest) {
-        User user = new User();
-        user.setName(signUpRequest.getName());
-        user.setEmail(signUpRequest.getEmail());
-        user.setPassword(signUpRequest.getPassword());
-
-        Role role = new Role();
-        role.setName(signUpRequest.getRole());
-        user.setRole(role);
-
-        User savedUser = userService.signup(user);
-
-        SignUpResponseDTO response = new SignUpResponseDTO();
-        response.setName(savedUser.getName());
-        response.setEmail(savedUser.getEmail());
-        response.setRole(savedUser.getRole().getName());
-
-        return response;
-    }
-
-    @PostMapping("/users/login")
-    public LoginResponseDTO login(@RequestBody LoginRequestDTO loginRequest) {
-        String token = userService.login(loginRequest.getEmail(), loginRequest.getPassword());
-
-        LoginResponseDTO response = new LoginResponseDTO();
-        response.setMessage("Login successful");
-        response.setToken(token);
-
-        return response;
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
-    @PutMapping("/users/{id}/status")
-    public void updateUserStatus(@PathVariable Long id, @RequestParam boolean active) {
+    
+    @PutMapping("/{id}/status")
+    public ResponseEntity<Void> updateStatus(@PathVariable Long id,
+                                              @RequestParam boolean active) {
         userService.setUserActiveStatus(id, active);
+        return ResponseEntity.ok().build();
     }
-
 }

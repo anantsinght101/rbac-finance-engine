@@ -10,4 +10,5 @@ import lombok.*;
 public class SummaryRequestDTO {
     private LocalDate startDate;
     private LocalDate endDate;
+    private String period;
 }
